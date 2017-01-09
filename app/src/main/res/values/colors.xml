@@ -9,7 +9,9 @@
     <color name="very_light_gray">#f3f3f3</color>
     <color name="transparent_white">#57fdfdfd</color>
     <color name="green">#19a355</color>
+    <color name="transparent_green">#7b19a355</color>
     <color name="red">#ef1f2e</color>
+    <color name="transparent_red">#7bef1f2e</color>
     <color name="golden">#fadb2b</color>
     <color name="transparent_black">#83000000</color>
 </resources>
