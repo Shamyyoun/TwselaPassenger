@@ -78,7 +78,6 @@
 
     <style name="MyEditText" parent="Widget.AppCompat.EditText">
         <item name="android:textSize">@dimen/medium_text</item>
-        <item name="android:gravity">left</item>
         <item name="backgroundTint">@color/gray_orange_edittext_bg</item>
     </style>
 

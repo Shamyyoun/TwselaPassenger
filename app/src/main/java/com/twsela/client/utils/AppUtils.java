@@ -26,6 +26,24 @@ public class AppUtils {
     }
 
     /**
+     * method, used to concatenate all parts and form a request tag
+     *
+     * @param pathParts
+     * @return
+     */
+    public static String getRequestTag(Object... pathParts) {
+        String tag = "";
+        for (int i = 0; i < pathParts.length; i++) {
+            if (i != 0) {
+                tag += "/";
+            }
+
+            tag += pathParts[i].toString();
+        }
+        return tag;
+    }
+
+    /**
      * method, used to concatenate all parts and form a valid url
      *
      * @param pathParts
