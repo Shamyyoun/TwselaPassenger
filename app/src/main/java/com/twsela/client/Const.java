@@ -11,6 +11,7 @@ public class Const {
     public static final String APP_FILES_DIR = "/.twsela_client";
     public static final String END_POINT = "http://35.167.31.161:3300";
     public static final int DEFAULT_ITEM_ID = -1; // this is used to add a default item in lists used in adapter
+    public static final int INITIAL_ZOOM_LEVEL = 15;
 
     // Server Constants:--------------------
     public static final int SER_CODE_200 = 200;

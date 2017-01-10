@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <fragment
+        android:id="@+id/map_fragment"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/transparent_green"
+            android:gravity="right|center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="5dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="10dp"
+            android:paddingTop="5dp">
+
+            <TextView
+                android:id="@+id/tv_from"
+                style="@style/SingleLineEllipsizedText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/choose_pickup"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/medium_text" />
+
+            <ImageButton
+                android:id="@+id/ib_from_map"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="7dp"
+                android:src="@drawable/small_white_marker" />
+
+            <ImageButton
+                android:id="@+id/ib_from_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="7dp"
+                android:src="@drawable/small_search_icon" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/transparent_red"
+            android:gravity="right|center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="5dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="10dp"
+            android:paddingTop="5dp">
+
+            <TextView
+                android:id="@+id/tv_to"
+                style="@style/SingleLineEllipsizedText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/choose_destination"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/medium_text" />
+
+            <ImageButton
+                android:id="@+id/ib_to_map"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="7dp"
+                android:src="@drawable/small_white_marker" />
+
+            <ImageButton
+                android:id="@+id/ib_to_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="7dp"
+                android:src="@drawable/small_search_icon" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

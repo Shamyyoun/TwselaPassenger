@@ -1,79 +1,78 @@
 package com.twsela.client.activities;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.view.Gravity;
+import android.view.MenuItem;
 
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.twsela.client.Const;
 import com.twsela.client.R;
-import com.twsela.client.utils.PermissionUtil;
-import com.twsela.client.utils.Utils;
+import com.twsela.client.fragments.HomeFragment;
 
-public class MainActivity extends ParentActivity implements OnMapReadyCallback {
-    private SupportMapFragment mapFragment;
-    private GoogleMap map;
+public class MainActivity extends ParentActivity {
+    private static int DRAWER_GRAVITY = Gravity.LEFT;
+
+    private DrawerLayout drawerLayout;
+    private HomeFragment homeFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setToolbarIcon(R.drawable.menu_icon);
 
-        // init map fragment and obtain the map async
-        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
-        mapFragment.getMapAsync(this);
+        // init drawer layout
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+    }
 
-        // check location permission
-        // and request it from user if not granted
-        boolean permGranted = checkCallingOrSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED;
-        if (!permGranted) {
-            // request permission from user
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    Const.PERM_REQ_LOCATION);
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
+        // load home fragment if required
+        if (savedInstanceState == null) {
+            loadHomeFragment();
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        // customize the map
-        this.map = googleMap;
-//        map.setMyLocationEnabled(true);
-//
-//        googleMap.
-//
-//        // change camera to my location when possible
-//        googleMap.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
-//            @Override
-//            public void onMyLocationChange(Location location) {
-//                Log.e("Shops Map", "Location Changed");
-//                mCurrentLocation = location;
-//
-//                if (mZoomToMyLocation) {
-//                    LatLng myCoordinate = new LatLng(location.getLatitude(), location.getLongitude());
-//                    CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(myCoordinate, 12);
-//                    googleMap.animateCamera(cameraUpdate);
-//
-//                    mZoomToMyLocation = false;
-//                }
-//            }
-//        });
+    private void loadHomeFragment() {
+        // create the home fragment if possible and load it
+        if (homeFragment == null) {
+            homeFragment = new HomeFragment();
+        }
+
+        loadFragment(R.id.container, homeFragment);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == Const.PERM_REQ_LOCATION) {
-            // check grant result
-            if (!PermissionUtil.isAllGranted(grantResults)) {
-                // show msg and finish
-                Utils.showLongToast(this, R.string.location_perm_refuse_msg);
-                finish();
-            }
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onMenuIcon();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void onMenuIcon() {
+        if (drawerLayout.isDrawerOpen(DRAWER_GRAVITY)) {
+            closeMenuDrawer();
         } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            drawerLayout.openDrawer(DRAWER_GRAVITY);
+        }
+    }
+
+    public void closeMenuDrawer() {
+        drawerLayout.closeDrawer(DRAWER_GRAVITY);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout.isDrawerOpen(DRAWER_GRAVITY)) {
+            closeMenuDrawer();
+        } else {
+            super.onBackPressed();
         }
     }
 }
