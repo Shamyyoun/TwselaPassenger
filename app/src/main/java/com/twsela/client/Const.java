@@ -32,4 +32,9 @@ public class Const {
 
     // SharePrefs Keys:---------------------
     public static final String SP_USER = "user";
+
+    // Activity Requests:-------------------
+    public static final int REQ_FROM_SEARCH = 1;
+    public static final int REQ_TO_SEARCH = 2;
+    public static final int REQ_ENABLE_GPS = 3;
 }
