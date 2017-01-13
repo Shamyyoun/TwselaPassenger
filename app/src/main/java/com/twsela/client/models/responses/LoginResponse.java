@@ -10,16 +10,10 @@ public class LoginResponse extends ServerResponse {
     @Expose
     private User content;
 
-    /**
-     * @return The content
-     */
     public User getContent() {
         return content;
     }
 
-    /**
-     * @param content The content
-     */
     public void setContent(User content) {
         this.content = content;
     }

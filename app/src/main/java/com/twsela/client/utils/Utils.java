@@ -536,6 +536,21 @@ public class Utils {
     }
 
     /**
+     * method, used to convert string number to float number
+     *
+     * @param number
+     * @return
+     */
+    public static float convertToFloat(String number) {
+        try {
+            return Float.parseFloat(number);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    /**
      * method, used to convert string number to int number
      *
      * @param number

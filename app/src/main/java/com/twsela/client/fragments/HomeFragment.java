@@ -10,6 +10,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,24 +29,33 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.twsela.client.ApiRequests;
 import com.twsela.client.Const;
 import com.twsela.client.R;
+import com.twsela.client.connection.ConnectionHandler;
 import com.twsela.client.controllers.LocationController;
 import com.twsela.client.models.entities.AppLocation;
+import com.twsela.client.models.entities.Driver;
 import com.twsela.client.models.entities.Trip;
+import com.twsela.client.models.responses.DriversResponse;
 import com.twsela.client.utils.DialogUtils;
 import com.twsela.client.utils.LocationUtils;
+import com.twsela.client.utils.MarkerUtils;
 import com.twsela.client.utils.PermissionUtil;
 import com.twsela.client.utils.Utils;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by Shamyyoun on 5/28/16.
  */
-public class HomeFragment extends ParentFragment implements OnMapReadyCallback, GoogleMap.OnMapLoadedCallback {
+public class HomeFragment extends ParentFragment implements OnMapReadyCallback, GoogleMap.OnMapLoadedCallback, Runnable {
     private static final int MAP_PADDING = 300;
     private static final int LOCATION_FROM = 0;
     private static final int LOCATION_TO = 1;
@@ -69,8 +79,12 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     private Marker[] markers; // used to hold map markers
     private boolean controlsEnabled;
     private AsyncTask addressTask;
-    private int currentSelectLocationSign; // used to hold current location sign to set it after selecting it
     private AlertDialog gpsDialog;
+    private int currentSelectLocationSign; // used to hold current location sign to set it after selecting it
+    private Handler driversHandler;
+    private ConnectionHandler driversConnectionHandler;
+    private HashMap<String, Marker> driversMarkers;
+    private boolean mapLoaded;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -81,6 +95,8 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
         tripHolder = new Trip();
         markers = new Marker[2];
+        driversHandler = new Handler();
+        driversMarkers = new HashMap<>();
     }
 
     @Override
@@ -130,6 +146,12 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             return;
         }
 
+        // check internet
+        if (!hasInternetConnection()) {
+            // show msg
+            Utils.showShortToast(activity, R.string.enable_internet_connection_to_use_app);
+        }
+
         // then get the map async if all settings are ok
         mapFragment.getMapAsync(this);
     }
@@ -145,6 +167,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // customize the map
         map.setMyLocationEnabled(true);
+        map.getUiSettings().setMapToolbarEnabled(false);
         map.setOnMapLoadedCallback(this);
 
         // enable the controls
@@ -161,9 +184,16 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // add from location and set its address if possible
         if (location != null) {
-            addFromLocation(location.getLatitude(), location.getLongitude(), null);
+//            addFromLocation(location.getLatitude(), location.getLongitude(), null);
+            addFromLocation(-73.856077, 40.848447, null); // TODO remove
             setFromAddress();
         }
+
+        // start near drivers handler
+        driversHandler.post(this);
+
+        // update the flag
+        mapLoaded = true;
     }
 
     @Override
@@ -245,6 +275,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void openAutoCompleteActivity(int requestCode) {
+        // open auto complete activity if possible
         try {
             Intent intent = new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_OVERLAY)
                     .build(activity);
@@ -270,10 +301,12 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         } else if (resultCode == Activity.RESULT_OK) {
             if (requestCode == Const.REQ_FROM_SEARCH) {
+                // add from location
                 Place place = PlaceAutocomplete.getPlace(activity, data);
                 LatLng latLng = place.getLatLng();
                 addFromLocation(latLng.latitude, latLng.longitude, place.getAddress().toString());
             } else if (requestCode == Const.REQ_TO_SEARCH) {
+                // add to location
                 Place place = PlaceAutocomplete.getPlace(activity, data);
                 LatLng latLng = place.getLatLng();
                 addToLocation(latLng.latitude, latLng.longitude, place.getAddress().toString());
@@ -284,6 +317,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void addFromLocation(double lat, double lng, String address) {
+        // save location, add marker, update ui and zoom to markers
         AppLocation location = saveLocation(lat, lng, address, LOCATION_FROM);
         addMarker(location, LOCATION_FROM);
         updateFromUI();
@@ -292,6 +326,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void addToLocation(double lat, double lng, String address) {
+        // save location, add marker, update ui and zoom to markers
         AppLocation location = saveLocation(lat, lng, address, LOCATION_TO);
         addMarker(location, LOCATION_TO);
         updateToUI();
@@ -340,6 +375,25 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void zoomToMarkers() {
+        // check markers map
+        if (markers[LOCATION_TO] == null) {
+            // this means that no to marker yet,
+            // so zoom to the from marker only
+            zoomToFromMarker();
+        } else {
+            // otherwise, zoom to all markers
+            zoomToAllMarkers();
+        }
+    }
+
+    private void zoomToFromMarker() {
+        AppLocation location = tripHolder.getFromLocation();
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, Const.INITIAL_ZOOM_LEVEL);
+        map.animateCamera(cameraUpdate);
+    }
+
+    private void zoomToAllMarkers() {
         try {
             LatLngBounds.Builder builder = new LatLngBounds.Builder();
             for (Marker marker : markers) {
@@ -451,6 +505,11 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     public void onDestroy() {
         super.onDestroy();
         cancelAddressTask();
+
+        // cancel near drivers request if possible
+        if (driversConnectionHandler != null) {
+            driversConnectionHandler.cancel(true);
+        }
     }
 
     private void onFromMap() {
@@ -501,7 +560,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         // show locations layout
         showLocationsLayout(currentSelectLocationSign);
 
-        // get the location
+        // get map center location
         LatLng latLng = map.getCameraPosition().target;
 
         // add the suitable location and set its address
@@ -525,6 +584,126 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
             CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(latLng);
             map.animateCamera(cameraUpdate);
+        }
+    }
+
+    // near drivers runnable run method
+    @Override
+    public void run() {
+        CameraPosition cameraPosition = map.getCameraPosition();
+
+        // check zoom level
+        if (cameraPosition.zoom < Const.MIN_LOADING_DRIVERS_ZOOM_LEVEL) {
+            // continue and exit this method
+            continueNearDriversTask();
+            return;
+        }
+
+        // get map center location
+        LatLng latLng = cameraPosition.target;
+
+        // create and execute the request
+        driversConnectionHandler = ApiRequests.nearDrivers(activity, this, latLng.latitude, latLng.longitude);
+    }
+
+    private void continueNearDriversTask() {
+        // continue drivers task after static time
+        driversHandler.removeCallbacks(this);
+        driversHandler.postDelayed(this, Const.NEAR_DRIVERS_REQ_DELAY);
+    }
+
+    @Override
+    public void onSuccess(Object response, int statusCode, String tag) {
+        // check tag
+        if (Const.ROUTE_NEAR_DRIVERS.equals(tag)) {
+            // near drivers request
+            // check response
+            DriversResponse driversResponse = (DriversResponse) response;
+            if (driversResponse.isSuccess() && driversResponse.getContent() != null) {
+                updateDriversMarkers(driversResponse.getContent());
+                continueNearDriversTask();
+            }
+        }
+    }
+
+    @Override
+    public void onFail(Exception ex, int statusCode, String tag) {
+        // continue the task
+        continueNearDriversTask();
+    }
+
+    private void updateDriversMarkers(List<Driver> drivers) {
+        // check drivers size
+        if (drivers.size() == 0) {
+            // clear all markers
+            map.clear();
+            driversMarkers.clear();
+            return;
+        }
+
+        // create temp hash map to hold all drivers markers
+        HashMap<String, Marker> tempDriverMarkers = new HashMap<>();
+
+        // loop all drivers to add a new marker or just change its current marker
+        for (Driver driver : drivers) {
+            // prepare driver values
+            String id = driver.getId();
+            double lat = locationController.getLatitude(driver.getLocation());
+            double lng = locationController.getLongitude(driver.getLocation());
+            float bearing = Utils.convertToFloat(driver.getBearing());
+            LatLng latLng = new LatLng(lat, lng);
+
+            // get driver marker and check it
+            Marker marker = driversMarkers.get(id);
+            if (marker != null) {
+                // marker found
+                // this driver already has a marker on the map
+                // animate his marker
+                MarkerUtils.animateMarkerToICSWithBearing(marker, latLng, bearing, new MarkerUtils.LatLngInterpolator.LinearFixed());
+
+                // remove this marker from the drivers markers map
+                driversMarkers.remove(id);
+            } else {
+                // marker not found
+                // this is a new driver and doesn't has a marker on the map yet
+                // add new one for him
+                marker = map.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .rotation(bearing)
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.map_car_icon))
+                        .anchor(0.5f, 0.5f)
+                        .flat(true));
+            }
+
+            // add the marker to the temp hash map
+            tempDriverMarkers.put(id, marker);
+        }
+
+        // now, all remaining markers in driversMarkers map not exists, so remove them
+        for (Marker marker : driversMarkers.values()) {
+            marker.remove();
+        }
+
+        // assign temp marker map to current driverMarkers map because they are the current existing drivers
+        driversMarkers.clear();
+        driversMarkers = tempDriverMarkers;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        // stop near drivers task
+        driversHandler.removeCallbacks(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // start near drivers task if possible
+        if (mapLoaded) {
+            driversHandler.post(this);
         }
     }
 }
