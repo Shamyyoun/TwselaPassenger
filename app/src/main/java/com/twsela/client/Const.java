@@ -31,11 +31,13 @@ public class Const {
     public static final String ROUTE_LOGIN = "login";
     public static final String ROUTE_NEAR_DRIVERS = "nearDrivers";
     public static final String ROUTE_REQUEST_TRIP = "requestTrip";
+    public static final String ROUTE_GET_DETAILS_BY_ID = "getDetailsById";
 
     // API Params:---------------------------
     public static final String PARAM_USERNAME = "username";
     public static final String PARAM_PASSWORD = "password";
     public static final String PARAM_GCM = "gcm";
+    public static final String PARAM_ID = "id";
 
     // SharePrefs Keys:---------------------
     public static final String SP_USER = "user";

@@ -54,6 +54,17 @@
     <string name="failed_requesting_trip">Failed requesting trip now</string>
     <string name="no_available_drivers_now">No available drivers right now</string>
     <string name="your_trip_is_accepted">Your trip is accepted</string>
+    <string name="your_driver_c">Your Driver:</string>
+    <string name="trip_status_c">Trip Status:</string>
+    <string name="driver_in_his_way_to_pickup">Driver in his way to pickup</string>
+    <string name="your_driver_in_his_way_to_pickup">Your Driver in his way to pickup</string>
+    <string name="driver_has_arrived_to_pickup">Driver has arrived to pickup</string>
+    <string name="your_driver_has_arrived_to_pickup">Your driver has arrived to pickup</string>
+    <string name="enjoy_your_trip">Enjoy your trip</string>
+    <string name="your_trip_has_started">Your trip has started</string>
+    <string name="you_have_arrived">You have arrived</string>
+    <string name="thanks_for_using_twsela">Thanks for using Twsela :)</string>
+    <string name="in_way_to_your_destination">In way to your destination</string>
 
 
     <!-- Arrays -->

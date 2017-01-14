@@ -44,7 +44,7 @@ import com.twsela.client.models.entities.Driver;
 import com.twsela.client.models.entities.MongoLocation;
 import com.twsela.client.models.entities.Trip;
 import com.twsela.client.models.enums.TripStatus;
-import com.twsela.client.models.events.DriverAcceptedEvent;
+import com.twsela.client.models.events.TripStatusChanged;
 import com.twsela.client.models.responses.DriversResponse;
 import com.twsela.client.models.responses.TripResponse;
 import com.twsela.client.utils.DialogUtils;
@@ -373,7 +373,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(locationSign == LOCATION_FROM ?
                 R.drawable.green_marker : R.drawable.red_marker);
 
-        // check from marker
+        // check marker
         Marker marker = markers[locationSign];
         if (marker == null) {
             // create the marker and add it the map
@@ -800,6 +800,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // check the internet connection
         if (hasInternetConnection()) {
+            showProgressDialog();
             requestTrip(pickupLat, pickupLng, tripHolder.getPickupAddress(), destinationLat,
                     destinationLng, tripHolder.getDestinationAddress());
         } else {
@@ -812,24 +813,25 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         // get user id
         String userId = activeUserController.getUser().getId();
 
-        showProgressDialog();
         ConnectionHandler request = ApiRequests.requestTrip(activity, this, userId, pickupLat,
                 pickupLng, pickupAddress, destinationLat, destinationLng, destinationAddress);
         cancelWhenDestroyed(request);
     }
 
     @Subscribe
-    public void onDriverAcceptedEvent(DriverAcceptedEvent event) {
-        // this method will work when a driver send accept notification to the active trip request
-        // just hide the progress dialog and unregister from event bus
-        hideProgressDialog();
-        EventBus.getDefault().unregister(this);
+    public void onTripStatusChanged(TripStatusChanged event) {
+        // check the status
+        if (event.getStatus() == TripStatus.ACCEPTED) {
+            // just hide the progress dialog and unregister from event bus
+            hideProgressDialog();
+            EventBus.getDefault().unregister(this);
 
-        // cancel request timeout handler
-        cancelTripRequestTimeoutHandler();
+            // cancel request timeout handler
+            cancelTripRequestTimeoutHandler();
 
-        // update last trip status
-        activeUserController.updateLastTripStatus(TripStatus.ACCEPTED);
+            // update last trip status
+            activeUserController.updateLastTripStatus(event.getStatus());
+        }
     }
 
 }

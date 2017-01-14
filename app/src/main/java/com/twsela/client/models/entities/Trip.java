@@ -30,6 +30,9 @@ public class Trip {
     @SerializedName("_id")
     @Expose
     private String id;
+    @SerializedName("driver")
+    @Expose
+    private Driver driver;
 
     public String getPassengerId() {
         return passengerId;
@@ -95,4 +98,11 @@ public class Trip {
         this.id = id;
     }
 
+    public Driver getDriver() {
+        return driver;
+    }
+
+    public void setDriver(Driver driver) {
+        this.driver = driver;
+    }
 }

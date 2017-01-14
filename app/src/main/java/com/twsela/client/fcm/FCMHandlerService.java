@@ -18,7 +18,7 @@ import com.twsela.client.activities.TripDetailsActivity;
 import com.twsela.client.controllers.ActiveUserController;
 import com.twsela.client.models.enums.NotificationKey;
 import com.twsela.client.models.enums.TripStatus;
-import com.twsela.client.models.events.DriverAcceptedEvent;
+import com.twsela.client.models.events.TripStatusChanged;
 import com.twsela.client.models.payloads.TripPayload;
 import com.twsela.client.utils.Utils;
 
@@ -56,6 +56,12 @@ public class FCMHandlerService extends FirebaseMessagingService {
         // check key
         if (NotificationKey.DRIVER_ACCEPTED_TRIP.getValue().equals(key)) {
             handleDriverAcceptedNotification(contentStr);
+        } else if (NotificationKey.DRIVER_ARRIVED.getValue().equals(key)) {
+            handleDriverArrivedNotification(contentStr);
+        } else if (NotificationKey.DRIVER_STARTED_TRIP.getValue().equals(key)) {
+            handleTripStartedNotification(contentStr);
+        } else if (NotificationKey.DRIVER_ENDED_TRIP.getValue().equals(key)) {
+            handleTripEndedNotification(contentStr);
         }
     }
 
@@ -70,7 +76,7 @@ public class FCMHandlerService extends FirebaseMessagingService {
         }
 
         // show notification
-        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_trip_is_accepted));
+        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_in_his_way_to_pickup));
 
         // open trip details activity
         Intent intent = new Intent(this, TripDetailsActivity.class);
@@ -81,7 +87,39 @@ public class FCMHandlerService extends FirebaseMessagingService {
         startActivity(intent);
 
         // post event
-        EventBus.getDefault().post(new DriverAcceptedEvent());
+        TripStatusChanged event = new TripStatusChanged();
+        event.setStatus(TripStatus.ACCEPTED);
+        EventBus.getDefault().post(event);
+    }
+
+    private void handleDriverArrivedNotification(String contentStr) {
+        // show notification
+        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_has_arrived_to_pickup));
+
+        // post event
+        TripStatusChanged event = new TripStatusChanged();
+        event.setStatus(TripStatus.DRIVER_ARRIVED);
+        EventBus.getDefault().post(event);
+    }
+
+    private void handleTripStartedNotification(String contentStr) {
+        // show notification
+        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_trip_has_started));
+
+        // post event
+        TripStatusChanged event = new TripStatusChanged();
+        event.setStatus(TripStatus.STARTED);
+        EventBus.getDefault().post(event);
+    }
+
+    private void handleTripEndedNotification(String contentStr) {
+        // show notification
+        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.you_have_arrived));
+
+        // post event
+        TripStatusChanged event = new TripStatusChanged();
+        event.setStatus(TripStatus.ENDED);
+        EventBus.getDefault().post(event);
     }
 
     private void showNotification(int notificationId, String message) {

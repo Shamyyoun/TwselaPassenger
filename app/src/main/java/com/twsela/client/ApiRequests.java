@@ -108,4 +108,20 @@ public class ApiRequests {
         return connectionHandler;
     }
 
+    public static ConnectionHandler<TripResponse> getTripDetails(Context context,
+                                                                 ConnectionListener<TripResponse> listener, String id) {
+
+        // prepare url
+        String url = AppUtils.getTripApiUrl(Const.ROUTE_GET_DETAILS_BY_ID);
+        url += "?" + Const.PARAM_ID + "=" + id;
+
+        // create connection handler
+        ConnectionHandler<TripResponse> connectionHandler = new ConnectionHandler(context, url,
+                TripResponse.class, listener, Const.ROUTE_REQUEST_TRIP);
+
+        // execute and return
+        connectionHandler.executeGet();
+        return connectionHandler;
+    }
+
 }
