@@ -38,16 +38,23 @@ import com.twsela.client.ApiRequests;
 import com.twsela.client.Const;
 import com.twsela.client.R;
 import com.twsela.client.connection.ConnectionHandler;
+import com.twsela.client.controllers.ActiveUserController;
 import com.twsela.client.controllers.LocationController;
-import com.twsela.client.models.entities.AppLocation;
 import com.twsela.client.models.entities.Driver;
+import com.twsela.client.models.entities.MongoLocation;
 import com.twsela.client.models.entities.Trip;
+import com.twsela.client.models.enums.TripStatus;
+import com.twsela.client.models.events.DriverAcceptedEvent;
 import com.twsela.client.models.responses.DriversResponse;
+import com.twsela.client.models.responses.TripResponse;
 import com.twsela.client.utils.DialogUtils;
 import com.twsela.client.utils.LocationUtils;
 import com.twsela.client.utils.MarkerUtils;
 import com.twsela.client.utils.PermissionUtil;
 import com.twsela.client.utils.Utils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,17 +69,19 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private SupportMapFragment mapFragment;
     private GoogleMap map;
-    private View layoutLocations;
+    private View layoutMain;
     private TextView tvFrom;
     private ImageButton ibFromMap;
     private ImageButton ibFromSearch;
     private TextView tvTo;
     private ImageButton ibToMap;
     private ImageButton ibToSearch;
-    private View layoutMarkers;
+    private Button btnRequestTrip;
+    private View layoutSelectLocation;
     private ImageView ivMarker;
     private Button btnSelectLocation;
 
+    private ActiveUserController activeUserController;
     private LocationController locationController;
     private LocationManager locationManager;
     private Trip tripHolder; // used to hold trip values
@@ -85,12 +94,15 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     private ConnectionHandler driversConnectionHandler;
     private HashMap<String, Marker> driversMarkers;
     private boolean mapLoaded;
+    private Handler tripRequestTimeoutHandler;
+    private Runnable tripRequestTimeoutRunnable;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         // create main objects
+        activeUserController = new ActiveUserController(activity);
         locationController = new LocationController();
         locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
         tripHolder = new Trip();
@@ -105,14 +117,15 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // init views
         mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map_fragment);
-        layoutLocations = findViewById(R.id.layout_locations);
+        layoutMain = findViewById(R.id.layout_main);
         tvFrom = (TextView) findViewById(R.id.tv_from);
         ibFromMap = (ImageButton) findViewById(R.id.ib_from_map);
         ibFromSearch = (ImageButton) findViewById(R.id.ib_from_search);
         tvTo = (TextView) findViewById(R.id.tv_to);
         ibToMap = (ImageButton) findViewById(R.id.ib_to_map);
         ibToSearch = (ImageButton) findViewById(R.id.ib_to_search);
-        layoutMarkers = findViewById(R.id.layout_markers);
+        btnRequestTrip = (Button) findViewById(R.id.btn_request_trip);
+        layoutSelectLocation = findViewById(R.id.layout_select_location);
         ivMarker = (ImageView) findViewById(R.id.iv_marker);
         btnSelectLocation = (Button) findViewById(R.id.btn_select_location);
 
@@ -124,6 +137,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         ibFromSearch.setOnClickListener(this);
         ibToMap.setOnClickListener(this);
         ibToSearch.setOnClickListener(this);
+        btnRequestTrip.setOnClickListener(this);
         btnSelectLocation.setOnClickListener(this);
 
         return rootView;
@@ -177,15 +191,14 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     @Override
     public void onMapLoaded() {
         // get suitable location
-        Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         if (location == null) {
-            location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         }
 
         // add from location and set its address if possible
         if (location != null) {
-//            addFromLocation(location.getLatitude(), location.getLongitude(), null);
-            addFromLocation(-73.856077, 40.848447, null); // TODO remove
+            addFromLocation(location.getLatitude(), location.getLongitude(), null);
             setFromAddress();
         }
 
@@ -261,6 +274,10 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
                 onSelectLocation();
                 break;
 
+            case R.id.btn_request_trip:
+                preRequestTrip();
+                break;
+
             default:
                 super.onClick(v);
         }
@@ -318,42 +335,41 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private void addFromLocation(double lat, double lng, String address) {
         // save location, add marker, update ui and zoom to markers
-        AppLocation location = saveLocation(lat, lng, address, LOCATION_FROM);
+        MongoLocation location = saveLocation(lat, lng, address, LOCATION_FROM);
         addMarker(location, LOCATION_FROM);
         updateFromUI();
 
+        // zoom to markers and show request trip btn
         zoomToMarkers();
+        btnRequestTrip.setVisibility(View.VISIBLE);
     }
 
     private void addToLocation(double lat, double lng, String address) {
         // save location, add marker, update ui and zoom to markers
-        AppLocation location = saveLocation(lat, lng, address, LOCATION_TO);
+        MongoLocation location = saveLocation(lat, lng, address, LOCATION_TO);
         addMarker(location, LOCATION_TO);
         updateToUI();
 
         zoomToMarkers();
     }
 
-    private AppLocation saveLocation(double lat, double lng, String address, int locationSign) {
-        // create the location
-        AppLocation location = new AppLocation();
-        location.setLatitude(lat);
-        location.setLongitude(lng);
-        location.setAddress(address);
-
-        // save it
+    private MongoLocation saveLocation(double lat, double lng, String address, int locationSign) {
+        // create location and save it with the address
+        MongoLocation location = locationController.createLocation(lat, lng);
         if (locationSign == LOCATION_FROM) {
-            tripHolder.setFromLocation(location);
+            tripHolder.setPickupLocation(location);
+            tripHolder.setPickupAddress(address);
         } else {
-            tripHolder.setToLocation(location);
+            tripHolder.setDestinationLocation(location);
+            tripHolder.setDestinationAddress(address);
         }
 
         return location;
     }
 
-    private void addMarker(AppLocation location, int locationSign) {
+    private void addMarker(MongoLocation location, int locationSign) {
         // create objects
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        LatLng latLng = locationController.createLatLng(location);
         BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(locationSign == LOCATION_FROM ?
                 R.drawable.green_marker : R.drawable.red_marker);
 
@@ -387,8 +403,8 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void zoomToFromMarker() {
-        AppLocation location = tripHolder.getFromLocation();
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        MongoLocation location = tripHolder.getPickupLocation();
+        LatLng latLng = locationController.createLatLng(location);
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, Const.INITIAL_ZOOM_LEVEL);
         map.animateCamera(cameraUpdate);
     }
@@ -410,9 +426,9 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void updateFromUI() {
-        if (tripHolder.getFromLocation() != null) {
+        if (tripHolder.getPickupLocation() != null) {
             String addressStr = getString(R.string.from) + ": ";
-            String address = tripHolder.getFromLocation().getAddress();
+            String address = tripHolder.getPickupAddress();
             if (address != null) {
                 addressStr = addressStr + address;
             }
@@ -424,9 +440,9 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     }
 
     private void updateToUI() {
-        if (tripHolder.getToLocation() != null) {
+        if (tripHolder.getDestinationLocation() != null) {
             String addressStr = getString(R.string.to) + ": ";
-            String address = tripHolder.getToLocation().getAddress();
+            String address = tripHolder.getDestinationAddress();
             if (address != null) {
                 addressStr = addressStr + address;
             }
@@ -460,14 +476,17 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // create the new one
         addressTask = new AsyncTask<Object, Object, String>() {
-            // get suitable location
-            AppLocation location = locationSign == LOCATION_FROM ? tripHolder.getFromLocation()
-                    : tripHolder.getToLocation();
-
             @Override
             protected String doInBackground(Object[] params) {
+                // get suitable location
+                MongoLocation location = locationSign == LOCATION_FROM ? tripHolder.getPickupLocation()
+                        : tripHolder.getDestinationLocation();
+
+                // check it
                 if (location != null) {
-                    return LocationUtils.getAddress(activity, location.getLatitude(), location.getLongitude());
+                    double lat = locationController.getLatitude(location);
+                    double lng = locationController.getLongitude(location);
+                    return LocationUtils.getAddress(activity, lat, lng);
                 } else {
                     return null;
                 }
@@ -476,15 +495,12 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             @Override
             protected void onPostExecute(String address) {
                 if (address != null) {
-                    // set it in the location address
-                    location.setAddress(address);
-
-                    // set the location and update the ui
+                    // set the address and update the ui
                     if (locationSign == LOCATION_FROM) {
-                        tripHolder.setFromLocation(location);
+                        tripHolder.setPickupAddress(address);
                         updateFromUI();
                     } else {
-                        tripHolder.setToLocation(location);
+                        tripHolder.setDestinationAddress(address);
                         updateToUI();
                     }
                 }
@@ -504,17 +520,24 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        // cancel address task
         cancelAddressTask();
 
         // cancel near drivers request if possible
         if (driversConnectionHandler != null) {
             driversConnectionHandler.cancel(true);
         }
+
+        // update last trip status, unregister from event bus & cancel trip timeout handler
+        activeUserController.updateLastTripStatus(null);
+        EventBus.getDefault().unregister(this);
+        cancelTripRequestTimeoutHandler();
     }
 
     private void onFromMap() {
         // show markers layout
-        showMarkersLayout(LOCATION_FROM);
+        showSelectLocationLayout(LOCATION_FROM);
 
         // center the map to from location;
         centerMapToLocation(LOCATION_FROM);
@@ -522,35 +545,35 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private void onToMap() {
         // show markers layout
-        showMarkersLayout(LOCATION_TO);
+        showSelectLocationLayout(LOCATION_TO);
 
         // center the map to to location;
         centerMapToLocation(LOCATION_TO);
     }
 
-    private void showMarkersLayout(int locationSign) {
-        showLocationsLayout(locationSign, false);
+    private void showSelectLocationLayout(int locationSign) {
+        showLayout(locationSign, false);
     }
 
-    private void showLocationsLayout(int locationSign) {
-        showLocationsLayout(locationSign, true);
+    private void showMainLayout(int locationSign) {
+        showLayout(locationSign, true);
     }
 
-    private void showLocationsLayout(int locationSign, boolean show) {
-        // customize locations layout visibility
-        layoutLocations.setVisibility(show ? View.VISIBLE : View.GONE);
+    private void showLayout(int locationSign, boolean showMainLayout) {
+        // customize main layout visibility
+        layoutMain.setVisibility(showMainLayout ? View.VISIBLE : View.GONE);
 
         // customize the marker visibility if possible
         Marker marker = markers[locationSign];
         if (marker != null) {
-            marker.setVisible(show);
+            marker.setVisible(showMainLayout);
         }
 
         // customize the marker icon
         ivMarker.setImageResource(locationSign == LOCATION_FROM ? R.drawable.large_green_marker : R.drawable.large_red_marker);
 
-        // customize markers layout visibility
-        layoutMarkers.setVisibility(show ? View.GONE : View.VISIBLE);
+        // customize select location layout visibility
+        layoutSelectLocation.setVisibility(showMainLayout ? View.GONE : View.VISIBLE);
 
         // save the current locationSign
         currentSelectLocationSign = locationSign;
@@ -558,7 +581,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private void onSelectLocation() {
         // show locations layout
-        showLocationsLayout(currentSelectLocationSign);
+        showMainLayout(currentSelectLocationSign);
 
         // get map center location
         LatLng latLng = map.getCameraPosition().target;
@@ -575,13 +598,13 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private void centerMapToLocation(int locationSign) {
         // get suitable location
-        AppLocation location = locationSign == LOCATION_FROM ? tripHolder.getFromLocation()
-                : tripHolder.getToLocation();
+        MongoLocation location = locationSign == LOCATION_FROM ? tripHolder.getPickupLocation()
+                : tripHolder.getDestinationLocation();
 
         // check the location
         if (location != null) {
             // animate the map to this location
-            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            LatLng latLng = locationController.createLatLng(location);
             CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(latLng);
             map.animateCamera(cameraUpdate);
         }
@@ -594,7 +617,10 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
         // check zoom level
         if (cameraPosition.zoom < Const.MIN_LOADING_DRIVERS_ZOOM_LEVEL) {
-            // continue and exit this method
+            // remove all drivers marker
+            removeDriversMarkers();
+
+            // continue the task and exit this method
             continueNearDriversTask();
             return;
         }
@@ -623,21 +649,64 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
                 updateDriversMarkers(driversResponse.getContent());
                 continueNearDriversTask();
             }
+        } else if (Const.ROUTE_REQUEST_TRIP.equals(tag)) {
+            // request trip request
+            // check response
+            TripResponse tripResponse = (TripResponse) response;
+            if (tripResponse.isSuccess()) {
+                // update last trip status & listen for driver accept event
+                activeUserController.updateLastTripStatus(TripStatus.REQUEST_TRIP);
+                EventBus.getDefault().register(this);
+
+                // start timeout handler
+                startTripRequestTimeoutHandler();
+            } else {
+                // show msg
+                Utils.showShortToast(activity, R.string.failed_requesting_trip);
+            }
         }
     }
 
     @Override
     public void onFail(Exception ex, int statusCode, String tag) {
-        // continue the task
-        continueNearDriversTask();
+        // check tag
+        if (Const.ROUTE_NEAR_DRIVERS.equals(tag)) {
+            // continue drivers task
+            continueNearDriversTask();
+        } else {
+            super.onFail(ex, statusCode, tag);
+        }
+    }
+
+    private void startTripRequestTimeoutHandler() {
+        tripRequestTimeoutHandler = new Handler();
+        tripRequestTimeoutRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // show msg dialog and unregister from event bus
+                hideProgressDialog();
+                DialogUtils.showAlertDialog(activity, R.string.no_available_drivers_now, null);
+                EventBus.getDefault().unregister(HomeFragment.this);
+
+                // update last trip status
+                activeUserController.updateLastTripStatus(null);
+            }
+        };
+
+        tripRequestTimeoutHandler.postDelayed(tripRequestTimeoutRunnable, Const.TRIP_REQUEST_TIMEOUT);
+    }
+
+    private void cancelTripRequestTimeoutHandler() {
+        if (tripRequestTimeoutHandler != null && tripRequestTimeoutRunnable != null) {
+            tripRequestTimeoutHandler.removeCallbacks(tripRequestTimeoutRunnable);
+        }
     }
 
     private void updateDriversMarkers(List<Driver> drivers) {
         // check drivers size
         if (drivers.size() == 0) {
-            // clear all markers
-            map.clear();
-            driversMarkers.clear();
+            // remove all drivers markers
+            removeDriversMarkers();
             return;
         }
 
@@ -679,10 +748,8 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             tempDriverMarkers.put(id, marker);
         }
 
-        // now, all remaining markers in driversMarkers map not exists, so remove them
-        for (Marker marker : driversMarkers.values()) {
-            marker.remove();
-        }
+        // now, remove all remaining markers
+        removeDriversMarkers();
 
         // assign temp marker map to current driverMarkers map because they are the current existing drivers
         driversMarkers.clear();
@@ -706,4 +773,63 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             driversHandler.post(this);
         }
     }
+
+    private void removeDriversMarkers() {
+        for (Marker marker : driversMarkers.values()) {
+            marker.remove();
+        }
+
+        driversMarkers.clear();
+    }
+
+    private void preRequestTrip() {
+        // prepare params
+        MongoLocation pickupLocation = tripHolder.getPickupLocation();
+        double pickupLat = locationController.getLatitude(pickupLocation);
+        double pickupLng = locationController.getLongitude(pickupLocation);
+        MongoLocation destinationLocation = tripHolder.getDestinationLocation();
+        double destinationLat = locationController.getLatitude(destinationLocation);
+        double destinationLng = locationController.getLongitude(destinationLocation);
+
+        // check pickup location
+        if (pickupLocation == null) {
+            // show msg
+            Utils.showShortToast(activity, R.string.choose_pickup_location);
+            return;
+        }
+
+        // check the internet connection
+        if (hasInternetConnection()) {
+            requestTrip(pickupLat, pickupLng, tripHolder.getPickupAddress(), destinationLat,
+                    destinationLng, tripHolder.getDestinationAddress());
+        } else {
+            Utils.showShortToast(activity, R.string.no_internet_connection);
+        }
+    }
+
+    private void requestTrip(double pickupLat, double pickupLng, String pickupAddress,
+                             double destinationLat, double destinationLng, String destinationAddress) {
+        // get user id
+        String userId = activeUserController.getUser().getId();
+
+        showProgressDialog();
+        ConnectionHandler request = ApiRequests.requestTrip(activity, this, userId, pickupLat,
+                pickupLng, pickupAddress, destinationLat, destinationLng, destinationAddress);
+        cancelWhenDestroyed(request);
+    }
+
+    @Subscribe
+    public void onDriverAcceptedEvent(DriverAcceptedEvent event) {
+        // this method will work when a driver send accept notification to the active trip request
+        // just hide the progress dialog and unregister from event bus
+        hideProgressDialog();
+        EventBus.getDefault().unregister(this);
+
+        // cancel request timeout handler
+        cancelTripRequestTimeoutHandler();
+
+        // update last trip status
+        activeUserController.updateLastTripStatus(TripStatus.ACCEPTED);
+    }
+
 }

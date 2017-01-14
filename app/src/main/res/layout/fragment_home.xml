@@ -12,12 +12,13 @@
         android:layout_height="match_parent" />
 
     <LinearLayout
-        android:id="@+id/layout_locations"
+        android:id="@+id/layout_main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
+        android:animateLayoutChanges="true"
         android:orientation="vertical"
-        tools:visibility="gone">
+        tools:visibility="visible">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -98,14 +99,23 @@
                 android:padding="7dp"
                 android:src="@drawable/small_search_icon" />
         </LinearLayout>
+
+        <com.twsela.client.views.DarkenedButton
+            android:id="@+id/btn_request_trip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/orange_rect_button_bg"
+            android:text="@string/request_trip"
+            android:visibility="gone" />
     </LinearLayout>
 
     <FrameLayout
-        android:id="@+id/layout_markers"
+        android:id="@+id/layout_select_location"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
         <ImageView
             android:id="@+id/iv_marker"

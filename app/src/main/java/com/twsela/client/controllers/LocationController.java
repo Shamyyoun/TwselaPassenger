@@ -2,7 +2,11 @@ package com.twsela.client.controllers;
 
 import android.location.Location;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.twsela.client.models.entities.MongoLocation;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Shamyyoun on 1/11/17.
@@ -35,5 +39,19 @@ public class LocationController {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public MongoLocation createLocation(double lat, double lng) {
+        MongoLocation location = new MongoLocation();
+        List<Double> coordinates = new ArrayList<>(2);
+        coordinates.add(lat);
+        coordinates.add(lng);
+        location.setCoordinates(coordinates);
+        return location;
+    }
+
+    public LatLng createLatLng(MongoLocation location) {
+        LatLng latLng = new LatLng(getLatitude(location), getLongitude(location));
+        return latLng;
     }
 }

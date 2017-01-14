@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.twsela.client.Const;
 import com.twsela.client.models.entities.User;
+import com.twsela.client.models.enums.TripStatus;
 import com.twsela.client.utils.SharedPrefs;
 
 /**
@@ -42,5 +43,14 @@ public class ActiveUserController {
     public void logout() {
         userPrefs.remove(Const.SP_USER);
         setUser(null);
+    }
+
+    public void updateLastTripStatus(TripStatus status) {
+        if (status == null) {
+            user.setLastTripStatus(null);
+        } else {
+            user.setLastTripStatus(status.getValue());
+        }
+        save();
     }
 }

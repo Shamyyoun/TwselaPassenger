@@ -14,6 +14,7 @@ public class Const {
     public static final int INITIAL_ZOOM_LEVEL = 15;
     public static final int NEAR_DRIVERS_REQ_DELAY = 3 * 1000; // near driver loading delay in millieseconds
     public static final int MIN_LOADING_DRIVERS_ZOOM_LEVEL = 12; // min zoom level of the map to start loading drivers
+    public static final int TRIP_REQUEST_TIMEOUT = 60 * 1000;
 
     // Server Constants:--------------------
     public static final int SER_CODE_200 = 200;
@@ -26,8 +27,10 @@ public class Const {
     // API Routes:---------------------------
     public static final String ROUTE_PASSENGER = "passenger";
     public static final String ROUTE_DRIVER = "driver";
+    public static final String ROUTE_TRIP = "trip";
     public static final String ROUTE_LOGIN = "login";
     public static final String ROUTE_NEAR_DRIVERS = "nearDrivers";
+    public static final String ROUTE_REQUEST_TRIP = "requestTrip";
 
     // API Params:---------------------------
     public static final String PARAM_USERNAME = "username";
@@ -41,4 +44,13 @@ public class Const {
     public static final int REQ_FROM_SEARCH = 1;
     public static final int REQ_TO_SEARCH = 2;
     public static final int REQ_ENABLE_GPS = 3;
+
+    // Keys:--------------------------------
+    public static final String KEY_KEY = "key";
+    public static final String KEY_CONTENT = "content";
+    public static final String KEY_ID = "id";
+    public static final String KEY_STATUS = "status";
+
+    // Notification IDs:--------------------
+    public static final int NOTI_TRIP_CHANGED = 1;
 }

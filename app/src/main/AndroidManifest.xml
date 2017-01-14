@@ -78,5 +78,9 @@
             android:windowSoftInputMode="stateAlwaysHidden|adjustPan" />
 
         <activity android:name=".activities.MainActivity" />
+
+        <activity
+            android:label="@string/your_trip"
+            android:name=".activities.TripDetailsActivity" />
     </application>
 </manifest>

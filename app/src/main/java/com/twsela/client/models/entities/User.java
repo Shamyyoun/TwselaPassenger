@@ -21,6 +21,9 @@ public class User {
     @SerializedName("gcm")
     @Expose
     private String gcm;
+    @SerializedName("last_trip_status")
+    @Expose
+    private String lastTripStatus;
 
     public String getId() {
         return id;
@@ -62,4 +65,11 @@ public class User {
         this.gcm = gcm;
     }
 
+    public String getLastTripStatus() {
+        return lastTripStatus;
+    }
+
+    public void setLastTripStatus(String lastTripStatus) {
+        this.lastTripStatus = lastTripStatus;
+    }
 }

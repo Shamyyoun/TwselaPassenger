@@ -48,6 +48,12 @@
     <string name="settings">Settings</string>
     <string name="gps_refuse_msg">Sorry, you can\'t use the app without GPS</string>
     <string name="enable_internet_connection_to_use_app">Please enable internet connection to use the app</string>
+    <string name="request_trip">Request Trip</string>
+    <string name="choose_pickup_location">Please choose pickup location</string>
+    <string name="your_trip">Your Trip</string>
+    <string name="failed_requesting_trip">Failed requesting trip now</string>
+    <string name="no_available_drivers_now">No available drivers right now</string>
+    <string name="your_trip_is_accepted">Your trip is accepted</string>
 
 
     <!-- Arrays -->

@@ -54,6 +54,20 @@ public class AppUtils {
     }
 
     /**
+     * method, used to concatenate all parts and form a valid url
+     *
+     * @param pathParts
+     * @return
+     */
+    public static String getTripApiUrl(Object... pathParts) {
+        String fullUrl = Const.END_POINT + "/" + Const.ROUTE_TRIP;
+        for (Object pathPart : pathParts) {
+            fullUrl += "/" + pathPart.toString();
+        }
+        return fullUrl;
+    }
+
+    /**
      * method, used to return server response msg or the default msg
      *
      * @param context
