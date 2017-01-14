@@ -7,7 +7,16 @@ import com.twsela.client.models.enums.TripStatus;
  */
 
 public class TripStatusChanged {
+    private String id;
     private TripStatus status;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public TripStatus getStatus() {
         return status;

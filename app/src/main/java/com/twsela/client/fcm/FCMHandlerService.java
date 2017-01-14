@@ -23,6 +23,7 @@ import com.twsela.client.models.payloads.TripPayload;
 import com.twsela.client.utils.Utils;
 
 import org.greenrobot.eventbus.EventBus;
+import org.json.JSONObject;
 
 import java.util.Map;
 
@@ -31,6 +32,13 @@ import java.util.Map;
  */
 public class FCMHandlerService extends FirebaseMessagingService {
     private static final String TAG = "FCMHandler";
+    private ActiveUserController activeUserController;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        activeUserController = new ActiveUserController(this);
+    }
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
@@ -49,11 +57,19 @@ public class FCMHandlerService extends FirebaseMessagingService {
             return;
         }
 
-        // get key and content
-        String key = remoteMessage.getData().get(Const.KEY_KEY);
-        String contentStr = remoteMessage.getData().get(Const.KEY_CONTENT);
+        // prepare key and content
+        String key = null;
+        String contentStr = null;
+        try {
+            String key1Str = remoteMessage.getData().get("key1");
+            JSONObject key1Object = new JSONObject(key1Str);
+            JSONObject dataObject = key1Object.getJSONObject("data");
+            key = dataObject.getString("key");
+            contentStr = dataObject.getJSONObject("content").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        // check key
         if (NotificationKey.DRIVER_ACCEPTED_TRIP.getValue().equals(key)) {
             handleDriverAcceptedNotification(contentStr);
         } else if (NotificationKey.DRIVER_ARRIVED.getValue().equals(key)) {
@@ -75,6 +91,9 @@ public class FCMHandlerService extends FirebaseMessagingService {
             return;
         }
 
+        // update last trip status
+        activeUserController.updateActiveTripStatus(payload.getTripId(), TripStatus.ACCEPTED);
+
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_in_his_way_to_pickup));
 
@@ -83,7 +102,7 @@ public class FCMHandlerService extends FirebaseMessagingService {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra(Const.KEY_ID, payload.getTripId());
-        intent.putExtra(Const.KEY_STATUS, TripStatus.ACCEPTED);
+        intent.putExtra(Const.KEY_STATUS, TripStatus.ACCEPTED.getValue());
         startActivity(intent);
 
         // post event
@@ -93,6 +112,18 @@ public class FCMHandlerService extends FirebaseMessagingService {
     }
 
     private void handleDriverArrivedNotification(String contentStr) {
+        // parse the trip payload object
+        Gson gson = new Gson();
+        TripPayload payload = gson.fromJson(contentStr, TripPayload.class);
+
+        // validate the payload
+        if (payload == null) {
+            return;
+        }
+
+        // update last trip status
+        activeUserController.updateActiveTripStatus(payload.getTripId(), TripStatus.DRIVER_ARRIVED);
+
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_has_arrived_to_pickup));
 
@@ -103,6 +134,18 @@ public class FCMHandlerService extends FirebaseMessagingService {
     }
 
     private void handleTripStartedNotification(String contentStr) {
+        // parse the trip payload object
+        Gson gson = new Gson();
+        TripPayload payload = gson.fromJson(contentStr, TripPayload.class);
+
+        // validate the payload
+        if (payload == null) {
+            return;
+        }
+
+        // update last trip status
+        activeUserController.updateActiveTripStatus(payload.getTripId(), TripStatus.STARTED);
+
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_trip_has_started));
 
@@ -113,6 +156,9 @@ public class FCMHandlerService extends FirebaseMessagingService {
     }
 
     private void handleTripEndedNotification(String contentStr) {
+        // update last trip status
+        activeUserController.removeActiveTrip();
+
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.you_have_arrived));
 
@@ -140,20 +186,22 @@ public class FCMHandlerService extends FirebaseMessagingService {
     }
 
     private void logDetails(RemoteMessage remoteMessage) {
-        if (Utils.DEBUGGABLE) {
-            Log.e(TAG, "From: " + remoteMessage.getFrom());
+        if (!Utils.DEBUGGABLE) {
+            return;
+        }
 
-            if (remoteMessage.getData().size() > 0) {
-                Log.e(TAG, "Message data payload: " + remoteMessage.getData());
-            } else {
-                Log.e(TAG, "Message doesn't contain data payload.");
-            }
+        Log.e(TAG, "From: " + remoteMessage.getFrom());
 
-            if (remoteMessage.getNotification() != null) {
-                Log.e(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
-            } else {
-                Log.e(TAG, "Message doesn't contain Notification Body.");
-            }
+        if (remoteMessage.getData().size() > 0) {
+            Log.e(TAG, "Message data payload: " + remoteMessage.getData());
+        } else {
+            Log.e(TAG, "Message doesn't contain data payload.");
+        }
+
+        if (remoteMessage.getNotification() != null) {
+            Log.e(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
+        } else {
+            Log.e(TAG, "Message doesn't contain Notification Body.");
         }
     }
 }

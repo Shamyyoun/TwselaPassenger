@@ -47,6 +47,7 @@ import com.twsela.client.models.enums.TripStatus;
 import com.twsela.client.models.events.TripStatusChanged;
 import com.twsela.client.models.responses.DriversResponse;
 import com.twsela.client.models.responses.TripResponse;
+import com.twsela.client.utils.AppUtils;
 import com.twsela.client.utils.DialogUtils;
 import com.twsela.client.utils.LocationUtils;
 import com.twsela.client.utils.MarkerUtils;
@@ -529,8 +530,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             driversConnectionHandler.cancel(true);
         }
 
-        // update last trip status, unregister from event bus & cancel trip timeout handler
-        activeUserController.updateLastTripStatus(null);
+        // unregister from event bus & cancel trip timeout handler
         EventBus.getDefault().unregister(this);
         cancelTripRequestTimeoutHandler();
     }
@@ -635,7 +635,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
     private void continueNearDriversTask() {
         // continue drivers task after static time
         driversHandler.removeCallbacks(this);
-        driversHandler.postDelayed(this, Const.NEAR_DRIVERS_REQ_DELAY);
+        driversHandler.postDelayed(this, Const.MAP_REFRESH_RATE);
     }
 
     @Override
@@ -654,15 +654,15 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             // check response
             TripResponse tripResponse = (TripResponse) response;
             if (tripResponse.isSuccess()) {
-                // update last trip status & listen for driver accept event
-                activeUserController.updateLastTripStatus(TripStatus.REQUEST_TRIP);
+                // listen for driver accept event
                 EventBus.getDefault().register(this);
 
                 // start timeout handler
                 startTripRequestTimeoutHandler();
             } else {
                 // show msg
-                Utils.showShortToast(activity, R.string.failed_requesting_trip);
+                String msg = AppUtils.getResponseMsg(activity, tripResponse, R.string.failed_requesting_trip);
+                Utils.showShortToast(activity, msg);
             }
         }
     }
@@ -687,9 +687,6 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
                 hideProgressDialog();
                 DialogUtils.showAlertDialog(activity, R.string.no_available_drivers_now, null);
                 EventBus.getDefault().unregister(HomeFragment.this);
-
-                // update last trip status
-                activeUserController.updateLastTripStatus(null);
             }
         };
 
@@ -830,7 +827,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             cancelTripRequestTimeoutHandler();
 
             // update last trip status
-            activeUserController.updateLastTripStatus(event.getStatus());
+            activeUserController.updateActiveTripStatus(event.getId(), event.getStatus());
         }
     }
 

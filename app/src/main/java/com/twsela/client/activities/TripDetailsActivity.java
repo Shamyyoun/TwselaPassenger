@@ -1,6 +1,7 @@
 package com.twsela.client.activities;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -18,7 +19,6 @@ import com.twsela.client.ApiRequests;
 import com.twsela.client.Const;
 import com.twsela.client.R;
 import com.twsela.client.connection.ConnectionHandler;
-import com.twsela.client.controllers.ActiveUserController;
 import com.twsela.client.controllers.LocationController;
 import com.twsela.client.controllers.TripController;
 import com.twsela.client.models.entities.Trip;
@@ -32,15 +32,14 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-public class TripDetailsActivity extends ParentActivity implements OnMapReadyCallback {
+public class TripDetailsActivity extends ParentActivity implements OnMapReadyCallback, Runnable {
     private static final int MAP_PADDING = 200;
     private static final int MARKER_SIGN_DRIVER = 0;
     private static final int MARKER_SIGN_PICKUP = 1;
     private static final int MARKER_SIGN_DESTINATION = 2;
 
     private String id;
-    private TripStatus tripStatus;
-    private ActiveUserController activeUserController;
+    private String tripStatus;
     private TripController tripController;
     private LocationController locationController;
 
@@ -50,8 +49,10 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
     private TextView tvDriverName;
 
     private Trip trip;
+    private Handler tripDetailsHandler;
     private Marker[] markers;
     private boolean zoomToMarkers = true;
+    private boolean firstTripDetailsReq = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,8 +61,7 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
         // obtain main objects
         id = getIntent().getStringExtra(Const.KEY_ID);
-        tripStatus = (TripStatus) getIntent().getSerializableExtra(Const.KEY_STATUS);
-        activeUserController = new ActiveUserController(this);
+        tripStatus = getIntent().getStringExtra(Const.KEY_STATUS);
         tripController = new TripController();
         locationController = new LocationController();
         markers = new Marker[3];
@@ -87,6 +87,9 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
         // start listening for events
         EventBus.getDefault().register(this);
+
+        // create the trip details handler
+        tripDetailsHandler = new Handler();
     }
 
     @Override
@@ -97,11 +100,11 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
     }
 
     private void updateTripStatusUI() {
-        if (tripStatus == TripStatus.ACCEPTED) {
+        if (TripStatus.ACCEPTED.getValue().equals(tripStatus)) {
             tvTripStatus.setText(R.string.driver_in_his_way_to_pickup);
-        } else if (tripStatus == TripStatus.DRIVER_ARRIVED) {
+        } else if (TripStatus.DRIVER_ARRIVED.getValue().equals(tripStatus)) {
             tvTripStatus.setText(R.string.driver_has_arrived_to_pickup);
-        } else if (tripStatus == TripStatus.STARTED) {
+        } else if (TripStatus.STARTED.getValue().equals(tripStatus)) {
             tvTripStatus.setText(R.string.in_way_to_your_destination);
         } else {
             tvTripStatus.setText("----------------");
@@ -146,13 +149,28 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
             // update driver marker
             updateDriverMarker();
 
-            // check zoom flag
-            if (zoomToMarkers) {
+            // check if first request
+            if (firstTripDetailsReq) {
                 // update pickup and zoom for the first time only
                 updatePickupMarker();
                 zoomToMarkers();
+
+                // update flag
                 zoomToMarkers = false;
             }
+        }
+
+        // continue the trip details tasl
+        continueTripDetailsTask();
+        firstTripDetailsReq = false;
+    }
+
+    @Override
+    public void onFail(Exception ex, int statusCode, String tag) {
+        // check if first request
+        if (firstTripDetailsReq) {
+            super.onFail(ex, statusCode, tag);
+            firstTripDetailsReq = false;
         }
     }
 
@@ -224,11 +242,8 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onTripStatusChanged(TripStatusChanged event) {
-        // update last trip status
-        activeUserController.updateLastTripStatus(event.getStatus());
-
         // update trip status
-        this.tripStatus = event.getStatus();
+        this.tripStatus = event.getStatus().getValue();
         updateTripStatusUI();
 
         // check trip status
@@ -266,5 +281,35 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
     @Override
     public void onBackPressed() {
+    }
+
+    @Override
+    public void run() {
+        // send load details request
+        loadTripDetails();
+    }
+
+    private void continueTripDetailsTask() {
+        // continue drivers task after static time
+        tripDetailsHandler.removeCallbacks(this);
+        tripDetailsHandler.postDelayed(this, Const.MAP_REFRESH_RATE);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // stop trip details handler
+        tripDetailsHandler.removeCallbacks(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // check if can continue trip details handler
+        if (!firstTripDetailsReq) {
+            tripDetailsHandler.post(this);
+        }
     }
 }

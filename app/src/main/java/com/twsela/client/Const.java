@@ -12,7 +12,7 @@ public class Const {
     public static final String END_POINT = "http://35.167.31.161:3300";
     public static final int DEFAULT_ITEM_ID = -1; // this is used to add a default item in lists used in adapter
     public static final int INITIAL_ZOOM_LEVEL = 15;
-    public static final int NEAR_DRIVERS_REQ_DELAY = 3 * 1000; // near driver loading delay in millieseconds
+    public static final int MAP_REFRESH_RATE = 3 * 1000; // map refresh rate in millieseconds
     public static final int MIN_LOADING_DRIVERS_ZOOM_LEVEL = 12; // min zoom level of the map to start loading drivers
     public static final int TRIP_REQUEST_TIMEOUT = 60 * 1000;
 

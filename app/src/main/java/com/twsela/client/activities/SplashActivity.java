@@ -3,8 +3,10 @@ package com.twsela.client.activities;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.twsela.client.Const;
 import com.twsela.client.R;
 import com.twsela.client.controllers.ActiveUserController;
+import com.twsela.client.models.entities.Trip;
 import com.twsela.client.utils.PlayServicesUtils;
 import com.twsela.client.utils.Utils;
 
@@ -27,17 +29,36 @@ public class SplashActivity extends ParentActivity {
         // create the controller
         activeUserController = new ActiveUserController(this);
 
-        // check logged in user to goto suitable activity
-        Intent intent = new Intent();
+        // check logged in user
         if (activeUserController.hasLoggedInUser()) {
-            intent.setClass(this, MainActivity.class);
+            // open main activity
+            Intent mainIntent = new Intent(this, MainActivity.class);
+            startActivity(mainIntent);
+
+            // check active trip
+            Trip activeTrip = activeUserController.getActiveTrip();
+            if (activeTrip != null) {
+                // open trip details activity
+                Intent tripIntent = new Intent(this, TripDetailsActivity.class);
+                tripIntent.putExtra(Const.KEY_ID, activeTrip.getId());
+                tripIntent.putExtra(Const.KEY_STATUS, activeTrip.getStatus());
+
+                startActivity(tripIntent);
+            }
+
         } else {
-            intent.setClass(this, LoginActivity.class);
+            // open login activity
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
         }
 
-        // open the activity
-        startActivity(intent);
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        // finish
         finish();
+    }
+
+    @Override
+    public void startActivity(Intent intent) {
+        super.startActivity(intent);
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }

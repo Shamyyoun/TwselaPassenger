@@ -3,6 +3,7 @@ package com.twsela.client.controllers;
 import android.content.Context;
 
 import com.twsela.client.Const;
+import com.twsela.client.models.entities.Trip;
 import com.twsela.client.models.entities.User;
 import com.twsela.client.models.enums.TripStatus;
 import com.twsela.client.utils.SharedPrefs;
@@ -45,12 +46,31 @@ public class ActiveUserController {
         setUser(null);
     }
 
-    public void updateLastTripStatus(TripStatus status) {
-        if (status == null) {
-            user.setLastTripStatus(null);
-        } else {
-            user.setLastTripStatus(status.getValue());
+    public void updateActiveTripStatus(String id, TripStatus status) {
+        // create new one if required
+        Trip activeTrip = user.getActiveTrip();
+        if (activeTrip == null) {
+            activeTrip = new Trip();
         }
+
+        // set values
+        activeTrip.setId(id);
+        activeTrip.setStatus(status.getValue());
+
+        user.setActiveTrip(activeTrip);
         save();
+    }
+
+    public void removeActiveTrip() {
+        user.setActiveTrip(null);
+        save();
+    }
+
+    public Trip getActiveTrip() {
+        if (user != null) {
+            return user.getActiveTrip();
+        } else {
+            return null;
+        }
     }
 }

@@ -15,15 +15,12 @@ public class User {
     @SerializedName("password")
     @Expose
     private String password;
-    @SerializedName("is_active")
-    @Expose
-    private boolean isActive;
     @SerializedName("gcm")
     @Expose
     private String gcm;
-    @SerializedName("last_trip_status")
+    @SerializedName("active_trip")
     @Expose
-    private String lastTripStatus;
+    private Trip activeTrip;
 
     public String getId() {
         return id;
@@ -49,14 +46,6 @@ public class User {
         this.password = password;
     }
 
-    public boolean isIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(boolean isActive) {
-        this.isActive = isActive;
-    }
-
     public String getGcm() {
         return gcm;
     }
@@ -65,11 +54,11 @@ public class User {
         this.gcm = gcm;
     }
 
-    public String getLastTripStatus() {
-        return lastTripStatus;
+    public Trip getActiveTrip() {
+        return activeTrip;
     }
 
-    public void setLastTripStatus(String lastTripStatus) {
-        this.lastTripStatus = lastTripStatus;
+    public void setActiveTrip(Trip activeTrip) {
+        this.activeTrip = activeTrip;
     }
 }
