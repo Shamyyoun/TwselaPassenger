@@ -81,6 +81,6 @@
 
         <activity
             android:label="@string/your_trip"
-            android:name=".activities.TripDetailsActivity" />
+            android:name=".activities.TripActivity" />
     </application>
 </manifest>

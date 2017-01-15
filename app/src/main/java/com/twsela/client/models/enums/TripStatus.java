@@ -7,7 +7,7 @@ package com.twsela.client.models.enums;
 public enum TripStatus {
     REQUEST_TRIP("Passenger Request Trip"), ACCEPTED("Driver Accepted Trip"),
     DRIVER_ARRIVED("Driver Arrived"), STARTED("Driver Start Trip"),
-    ENDED("Driver End Trip");
+    ENDED("Driver End Trip"), CANCELLED("Driver Cancel Trip");
 
     private String value;
 

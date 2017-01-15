@@ -14,7 +14,7 @@ import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
 import com.twsela.client.Const;
 import com.twsela.client.R;
-import com.twsela.client.activities.TripDetailsActivity;
+import com.twsela.client.activities.TripActivity;
 import com.twsela.client.controllers.ActiveUserController;
 import com.twsela.client.models.enums.NotificationKey;
 import com.twsela.client.models.enums.TripStatus;
@@ -78,6 +78,8 @@ public class FCMHandlerService extends FirebaseMessagingService {
             handleTripStartedNotification(contentStr);
         } else if (NotificationKey.DRIVER_ENDED_TRIP.getValue().equals(key)) {
             handleTripEndedNotification(contentStr);
+        } else if (NotificationKey.DRIVER_CANCELLED_TRIP.getValue().equals(key)) {
+            handleTripCancelledNotification(contentStr);
         }
     }
 
@@ -98,7 +100,7 @@ public class FCMHandlerService extends FirebaseMessagingService {
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_in_his_way_to_pickup));
 
         // open trip details activity
-        Intent intent = new Intent(this, TripDetailsActivity.class);
+        Intent intent = new Intent(this, TripActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra(Const.KEY_ID, payload.getTripId());
@@ -168,6 +170,19 @@ public class FCMHandlerService extends FirebaseMessagingService {
         EventBus.getDefault().post(event);
     }
 
+    private void handleTripCancelledNotification(String contentStr) {
+        // update last trip status
+        activeUserController.removeActiveTrip();
+
+        // show notification
+        showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.sorry_driver_cancelled_your_trip));
+
+        // post event
+        TripStatusChanged event = new TripStatusChanged();
+        event.setStatus(TripStatus.CANCELLED);
+        EventBus.getDefault().post(event);
+    }
+
     private void showNotification(int notificationId, String message) {
         // create the notification
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
@@ -177,7 +192,7 @@ public class FCMHandlerService extends FirebaseMessagingService {
                 .setContentText(message)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri);
-        builder.getNotification().flags |= Notification.FLAG_AUTO_CANCEL;
+        builder.getNotification().flags = Notification.FLAG_AUTO_CANCEL;
 
         // show the notification
         NotificationManager notificationManager =

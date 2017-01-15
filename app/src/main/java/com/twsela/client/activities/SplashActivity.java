@@ -39,7 +39,7 @@ public class SplashActivity extends ParentActivity {
             Trip activeTrip = activeUserController.getActiveTrip();
             if (activeTrip != null) {
                 // open trip details activity
-                Intent tripIntent = new Intent(this, TripDetailsActivity.class);
+                Intent tripIntent = new Intent(this, TripActivity.class);
                 tripIntent.putExtra(Const.KEY_ID, activeTrip.getId());
                 tripIntent.putExtra(Const.KEY_STATUS, activeTrip.getStatus());
 

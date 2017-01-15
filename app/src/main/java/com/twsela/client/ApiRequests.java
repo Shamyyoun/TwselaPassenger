@@ -99,7 +99,7 @@ public class ApiRequests {
             destinationCoordinates.add(destinationLng);
             destinationLocation.setCoordinates(destinationCoordinates);
             body.setDestinationLocation(destinationLocation);
-            body.setDestinationAddress(pickupAddress);
+            body.setDestinationAddress(destinationAddress);
         }
         connectionHandler.setBody(body);
 
@@ -117,7 +117,7 @@ public class ApiRequests {
 
         // create connection handler
         ConnectionHandler<TripResponse> connectionHandler = new ConnectionHandler(context, url,
-                TripResponse.class, listener, Const.ROUTE_REQUEST_TRIP);
+                TripResponse.class, listener, Const.ROUTE_GET_DETAILS_BY_ID);
 
         // execute and return
         connectionHandler.executeGet();

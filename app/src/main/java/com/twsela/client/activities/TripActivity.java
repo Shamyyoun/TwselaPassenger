@@ -32,7 +32,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-public class TripDetailsActivity extends ParentActivity implements OnMapReadyCallback, Runnable {
+public class TripActivity extends ParentActivity implements OnMapReadyCallback, Runnable {
     private static final int MAP_PADDING = 200;
     private static final int MARKER_SIGN_DRIVER = 0;
     private static final int MARKER_SIGN_PICKUP = 1;
@@ -51,13 +51,12 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
     private Trip trip;
     private Handler tripDetailsHandler;
     private Marker[] markers;
-    private boolean zoomToMarkers = true;
     private boolean firstTripDetailsReq = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_trip_details);
+        setContentView(R.layout.activity_trip);
 
         // obtain main objects
         id = getIntent().getStringExtra(Const.KEY_ID);
@@ -151,12 +150,14 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
             // check if first request
             if (firstTripDetailsReq) {
-                // update pickup and zoom for the first time only
-                updatePickupMarker();
-                zoomToMarkers();
-
-                // update flag
-                zoomToMarkers = false;
+                // check status to show destination marker
+                if (TripStatus.STARTED.getValue().equals(tripStatus)) {
+                    showDestinationMarker();
+                } else {
+                    // update pickup and zoom for the first time only
+                    updatePickupMarker();
+                    zoomToMarkers();
+                }
             }
         }
 
@@ -254,6 +255,10 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
             // show msg and finish
             Utils.showLongToast(this, R.string.thanks_for_using_twsela);
             finish();
+        } else if (event.getStatus() == TripStatus.CANCELLED) {
+            // show msg and finish
+            Utils.showLongToast(this, R.string.sorry_driver_cancelled_your_trip);
+            finish();
         }
     }
 
@@ -265,7 +270,7 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
 
         // remove pickup marker
         Marker marker = markers[MARKER_SIGN_PICKUP];
-        marker.remove();
+        if (marker != null) marker.remove();
         markers[MARKER_SIGN_PICKUP] = null;
 
         // zoom to markers
@@ -277,6 +282,9 @@ public class TripDetailsActivity extends ParentActivity implements OnMapReadyCal
         super.onDestroy();
         // stop listening for events
         EventBus.getDefault().unregister(this);
+
+        // stop trip details handler
+        tripDetailsHandler.removeCallbacks(this);
     }
 
     @Override

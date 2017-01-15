@@ -661,6 +661,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
                 startTripRequestTimeoutHandler();
             } else {
                 // show msg
+                hideProgressDialog();
                 String msg = AppUtils.getResponseMsg(activity, tripResponse, R.string.failed_requesting_trip);
                 Utils.showShortToast(activity, msg);
             }
@@ -825,9 +826,6 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
             // cancel request timeout handler
             cancelTripRequestTimeoutHandler();
-
-            // update last trip status
-            activeUserController.updateActiveTripStatus(event.getId(), event.getStatus());
         }
     }
 

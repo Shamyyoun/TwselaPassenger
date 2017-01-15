@@ -6,7 +6,8 @@ package com.twsela.client.models.enums;
 
 public enum NotificationKey {
     DRIVER_ACCEPTED_TRIP("Driver Accepted Trip"), DRIVER_ARRIVED("Driver Arrived"),
-    DRIVER_STARTED_TRIP("Driver Start Trip"), DRIVER_ENDED_TRIP("Driver End Trip");
+    DRIVER_STARTED_TRIP("Driver Start Trip"), DRIVER_ENDED_TRIP("Driver End Trip"),
+    DRIVER_CANCELLED_TRIP("Driver Cancel Trip");
 
     private String value;
 

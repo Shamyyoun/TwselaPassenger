@@ -4,7 +4,7 @@ package com.twsela.client.models.entities;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class User {
+public class Passenger {
 
     @SerializedName("_id")
     @Expose

@@ -3,18 +3,18 @@ package com.twsela.client.models.responses;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
-import com.twsela.client.models.entities.User;
+import com.twsela.client.models.entities.Passenger;
 
 public class LoginResponse extends ServerResponse {
     @SerializedName("content")
     @Expose
-    private User content;
+    private Passenger content;
 
-    public User getContent() {
+    public Passenger getContent() {
         return content;
     }
 
-    public void setContent(User content) {
+    public void setContent(Passenger content) {
         this.content = content;
     }
 }
