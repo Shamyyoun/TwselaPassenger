@@ -31,6 +31,7 @@ public class TripDetailsActivity extends ParentActivity {
     private TextView tvDestinationAddress;
     private TextView tvDistance;
     private TextView tvDuration;
+    private TextView tvFare;
     private Button btnClose;
 
     private Trip trip;
@@ -52,6 +53,7 @@ public class TripDetailsActivity extends ParentActivity {
         tvDestinationAddress = (TextView) findViewById(R.id.tv_destination_address);
         tvDistance = (TextView) findViewById(R.id.tv_distance);
         tvDuration = (TextView) findViewById(R.id.tv_duration);
+        tvFare = (TextView) findViewById(R.id.tv_fare);
         btnClose = (Button) findViewById(R.id.btn_close);
 
         // add listeners
@@ -109,6 +111,10 @@ public class TripDetailsActivity extends ParentActivity {
         } else {
             tvDuration.setText("---------------");
         }
+
+        // set fare
+        String costStr = Utils.formatDouble(trip.getCost()) + " " + getString(R.string.currency);
+        tvFare.setText(costStr);
     }
 
     private void updateDistanceUI(String distance) {
