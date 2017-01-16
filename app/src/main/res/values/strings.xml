@@ -65,6 +65,8 @@
     <string name="thanks_for_using_twsela">Thanks for using Twsela :)</string>
     <string name="in_way_to_your_destination">In way to your destination</string>
     <string name="sorry_driver_cancelled_your_trip">Sorry, the driver cancelled your trip</string>
+    <string name="logout">Logout</string>
+    <string name="logout_q">Logout?</string>
 
 
     <!-- Arrays -->
