@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 import com.twsela.client.Const;
 import com.twsela.client.R;
 import com.twsela.client.activities.TripActivity;
+import com.twsela.client.activities.TripDetailsActivity;
 import com.twsela.client.controllers.ActiveUserController;
 import com.twsela.client.models.enums.NotificationKey;
 import com.twsela.client.models.enums.TripStatus;
@@ -99,7 +100,7 @@ public class FCMHandlerService extends FirebaseMessagingService {
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.your_driver_in_his_way_to_pickup));
 
-        // open trip details activity
+        // open trip activity
         Intent intent = new Intent(this, TripActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -158,11 +159,27 @@ public class FCMHandlerService extends FirebaseMessagingService {
     }
 
     private void handleTripEndedNotification(String contentStr) {
+        // parse the trip payload object
+        Gson gson = new Gson();
+        TripPayload payload = gson.fromJson(contentStr, TripPayload.class);
+
+        // validate the payload
+        if (payload == null) {
+            return;
+        }
+
         // update last trip status
         activeUserController.removeActiveTrip();
 
         // show notification
         showNotification(Const.NOTI_TRIP_CHANGED, getString(R.string.you_have_arrived));
+
+        // open trip details activity
+        Intent intent = new Intent(this, TripDetailsActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra(Const.KEY_ID, payload.getTripId());
+        startActivity(intent);
 
         // post event
         TripStatusChanged event = new TripStatusChanged();

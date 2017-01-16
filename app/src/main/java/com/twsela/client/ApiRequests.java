@@ -7,6 +7,7 @@ import com.twsela.client.connection.ConnectionListener;
 import com.twsela.client.models.bodies.NearDriversBody;
 import com.twsela.client.models.entities.MongoLocation;
 import com.twsela.client.models.entities.Trip;
+import com.twsela.client.models.responses.DistanceMatrixResponse;
 import com.twsela.client.models.responses.DriversResponse;
 import com.twsela.client.models.responses.LoginResponse;
 import com.twsela.client.models.responses.TripResponse;
@@ -15,6 +16,7 @@ import com.twsela.client.utils.AppUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -120,6 +122,24 @@ public class ApiRequests {
                 TripResponse.class, listener, Const.ROUTE_GET_DETAILS_BY_ID);
 
         // execute and return
+        connectionHandler.executeGet();
+        return connectionHandler;
+    }
+
+    public static ConnectionHandler<DistanceMatrixResponse> getDistanceMatrix(Context context,
+                                                                              ConnectionListener<DistanceMatrixResponse> listener,
+                                                                              double originLat, double originLng,
+                                                                              double destLat, double destLng,
+                                                                              String apiKey, String language) {
+        // prepare url
+        String url = String.format(Locale.ENGLISH,
+                "https://maps.googleapis.com/maps/api/distancematrix/json?origins=%f,%f&destinations=%f,%f&language=%s&key=%s",
+                originLat, originLng, destLat, destLng, language, apiKey);
+
+        // create connection handler
+        ConnectionHandler<DistanceMatrixResponse> connectionHandler = new ConnectionHandler(context, url,
+                DistanceMatrixResponse.class, listener, Const.TAG_DISTANCE_MATRIX);
+
         connectionHandler.executeGet();
         return connectionHandler;
     }

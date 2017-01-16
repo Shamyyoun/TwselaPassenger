@@ -2,12 +2,10 @@ package com.twsela.client.fragments;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -84,7 +82,6 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     private ActiveUserController activeUserController;
     private LocationController locationController;
-    private LocationManager locationManager;
     private Trip tripHolder; // used to hold trip values
     private Marker[] markers; // used to hold map markers
     private boolean controlsEnabled;
@@ -105,7 +102,6 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         // create main objects
         activeUserController = new ActiveUserController(activity);
         locationController = new LocationController();
-        locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
         tripHolder = new Trip();
         markers = new Marker[2];
         driversHandler = new Handler();
@@ -191,11 +187,8 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     @Override
     public void onMapLoaded() {
-        // get suitable location
-        Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-        if (location == null) {
-            location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        }
+        // get possible location
+        Location location = LocationUtils.getLastKnownLocation(activity);
 
         // add from location and set its address if possible
         if (location != null) {

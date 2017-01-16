@@ -82,5 +82,7 @@
         <activity
             android:label="@string/your_trip"
             android:name=".activities.TripActivity" />
+
+        <activity android:name=".activities.TripDetailsActivity" />
     </application>
 </manifest>

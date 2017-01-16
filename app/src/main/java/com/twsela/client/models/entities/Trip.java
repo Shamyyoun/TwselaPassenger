@@ -21,18 +21,30 @@ public class Trip {
     @SerializedName("destination_location")
     @Expose
     private MongoLocation destinationLocation;
+    @SerializedName("actual_destination_address")
+    @Expose
+    private String actualDestinationAddress;
+    @SerializedName("actual_destination_location")
+    @Expose
+    private MongoLocation actualDestinationLocation;
     @SerializedName("status")
     @Expose
     private String status;
-    @SerializedName("request_time")
-    @Expose
-    private String requestTime;
     @SerializedName("_id")
     @Expose
     private String id;
     @SerializedName("driver")
     @Expose
     private Driver driver;
+    @SerializedName("passenger")
+    @Expose
+    private Passenger passenger;
+    @SerializedName("start_time")
+    @Expose
+    private String startTime;
+    @SerializedName("end_time")
+    @Expose
+    private String endTime;
 
     public String getPassengerId() {
         return passengerId;
@@ -82,14 +94,6 @@ public class Trip {
         this.status = status;
     }
 
-    public String getRequestTime() {
-        return requestTime;
-    }
-
-    public void setRequestTime(String requestTime) {
-        this.requestTime = requestTime;
-    }
-
     public String getId() {
         return id;
     }
@@ -104,5 +108,45 @@ public class Trip {
 
     public void setDriver(Driver driver) {
         this.driver = driver;
+    }
+
+    public Passenger getPassenger() {
+        return passenger;
+    }
+
+    public void setPassenger(Passenger passenger) {
+        this.passenger = passenger;
+    }
+
+    public String getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(String startTime) {
+        this.startTime = startTime;
+    }
+
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getActualDestinationAddress() {
+        return actualDestinationAddress;
+    }
+
+    public void setActualDestinationAddress(String actualDestinationAddress) {
+        this.actualDestinationAddress = actualDestinationAddress;
+    }
+
+    public MongoLocation getActualDestinationLocation() {
+        return actualDestinationLocation;
+    }
+
+    public void setActualDestinationLocation(MongoLocation actualDestinationLocation) {
+        this.actualDestinationLocation = actualDestinationLocation;
     }
 }
