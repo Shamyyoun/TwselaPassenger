@@ -1,5 +1,6 @@
 package com.twsela.client.activities;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.TextView;
@@ -15,15 +16,21 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.twsela.client.ApiRequests;
 import com.twsela.client.Const;
 import com.twsela.client.R;
+import com.twsela.client.TwselaApp;
 import com.twsela.client.connection.ConnectionHandler;
+import com.twsela.client.controllers.DirectionsController;
 import com.twsela.client.controllers.LocationController;
 import com.twsela.client.controllers.TripController;
+import com.twsela.client.models.entities.MongoLocation;
 import com.twsela.client.models.entities.Trip;
 import com.twsela.client.models.enums.TripStatus;
 import com.twsela.client.models.events.TripStatusChanged;
+import com.twsela.client.models.responses.DirectionsResponse;
 import com.twsela.client.models.responses.TripResponse;
 import com.twsela.client.utils.MarkerUtils;
 import com.twsela.client.utils.Utils;
@@ -31,6 +38,8 @@ import com.twsela.client.utils.Utils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.util.List;
 
 public class TripActivity extends ParentActivity implements OnMapReadyCallback, Runnable {
     private static final int MAP_PADDING = 200;
@@ -42,6 +51,7 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
     private String tripStatus;
     private TripController tripController;
     private LocationController locationController;
+    private DirectionsController directionsController;
 
     private SupportMapFragment mapFragment;
     private GoogleMap map;
@@ -52,6 +62,7 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
     private Handler tripDetailsHandler;
     private Marker[] markers;
     private boolean firstTripDetailsReq = true;
+    private Polyline pathPolyline;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +74,7 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
         tripStatus = getIntent().getStringExtra(Const.KEY_STATUS);
         tripController = new TripController();
         locationController = new LocationController();
+        directionsController = new DirectionsController();
         markers = new Marker[3];
 
         // init views
@@ -138,32 +150,51 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
     public void onSuccess(Object response, int statusCode, String tag) {
         hideProgressDialog();
 
-        // check response
-        TripResponse tripResponse = (TripResponse) response;
-        if (tripResponse.isSuccess() && tripResponse.getContent() != null) {
-            // update the ui
-            trip = tripResponse.getContent();
-            updateUI();
+        // check tag
+        if (Const.ROUTE_GET_DETAILS_BY_ID.equals(tag)) {
+            // check response
+            TripResponse tripResponse = (TripResponse) response;
+            if (tripResponse.isSuccess() && tripResponse.getContent() != null) {
+                // update the ui
+                trip = tripResponse.getContent();
+                updateUI();
 
-            // update driver marker
-            updateDriverMarker();
+                // update driver marker
+                updateDriverMarker();
 
-            // check if first request
-            if (firstTripDetailsReq) {
-                // check status to show destination marker
-                if (TripStatus.STARTED.getValue().equals(tripStatus)) {
-                    showDestinationMarker();
-                } else {
-                    // update pickup and zoom for the first time only
-                    updatePickupMarker();
-                    zoomToMarkers();
+                // check if first request
+                if (firstTripDetailsReq) {
+                    // check status to show destination marker
+                    if (TripStatus.STARTED.getValue().equals(tripStatus)) {
+                        showDestinationMarker();
+                    } else {
+                        // update pickup and zoom for the first time only
+                        updatePickupMarker();
+                        zoomToMarkers();
+                    }
+
+                    // check status to load the path
+                    if (TripStatus.ACCEPTED.getValue().equals(tripStatus)) {
+                        loadPickupDirections();
+                    } else if (TripStatus.STARTED.getValue().equals(tripStatus)) {
+                        loadDestinationDirections();
+                    }
                 }
             }
-        }
 
-        // continue the trip details tasl
-        continueTripDetailsTask();
-        firstTripDetailsReq = false;
+            // continue the trip details tasl
+            continueTripDetailsTask();
+            firstTripDetailsReq = false;
+        } else if (Const.TAG_DIRECTIONS.equals(tag)) {
+            // get points list
+            DirectionsResponse directionsResponse = (DirectionsResponse) response;
+            List<LatLng> points = directionsController.getPoints(directionsResponse);
+
+            // draw path if possible
+            if (points != null) {
+                drawPath(points);
+            }
+        }
     }
 
     @Override
@@ -248,9 +279,12 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
         updateTripStatusUI();
 
         // check trip status
-        if (event.getStatus() == TripStatus.STARTED) {
+        if (event.getStatus() == TripStatus.DRIVER_ARRIVED) {
+            clearPath();
+        } else if (event.getStatus() == TripStatus.STARTED) {
             // add destination marker if possible
             showDestinationMarker();
+            loadDestinationDirections();
         } else if (event.getStatus() == TripStatus.ENDED) {
             // show msg and finish
             Utils.showLongToast(this, R.string.thanks_for_using_twsela);
@@ -318,6 +352,78 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
         // check if can continue trip details handler
         if (!firstTripDetailsReq) {
             tripDetailsHandler.post(this);
+        }
+    }
+
+    private void loadPickupDirections() {
+        // clear current path
+        clearPath();
+
+        // load the path if possible
+        MongoLocation location = trip.getPickupLocation();
+        if (location != null) {
+            loadDirections(locationController.getLatitude(location), locationController.getLongitude(location));
+        }
+    }
+
+    private void loadDestinationDirections() {
+        // clear current path
+        clearPath();
+
+        // load the path if possible
+        MongoLocation location = trip.getDestinationLocation();
+        if (location != null) {
+            loadDirections(locationController.getLatitude(location), locationController.getLongitude(location));
+        }
+    }
+
+    private void loadDirections(double toLat, double toLng) {
+        // get driver location
+        MongoLocation driverLocation = null;
+        if (trip.getDriver() != null) {
+            driverLocation = trip.getDriver().getLocation();
+        }
+
+        // check it
+        if (driverLocation == null) {
+            // exit
+            return;
+        }
+
+        // prepare params
+        String apiKey = getString(R.string.google_api_server_key);
+        String language = TwselaApp.getLanguage(this);
+        double driverLat = locationController.getLatitude(driverLocation);
+        double driverLng = locationController.getLongitude(driverLocation);
+
+        // send the request
+        ConnectionHandler connectionHandler = ApiRequests.getDirections(this, this, driverLat,
+                driverLng, toLat, toLng, apiKey, language);
+        cancelWhenDestroyed(connectionHandler);
+    }
+
+    private void drawPath(List<LatLng> points) {
+        // check map
+        if (map == null) {
+            return;
+        }
+
+        // prepare polyline options obj
+        PolylineOptions options = new PolylineOptions()
+                .addAll(points)
+                .width(12)
+                .color(Color.DKGRAY)
+                .geodesic(true);
+
+        // draw the polyline
+        pathPolyline = map.addPolyline(options);
+    }
+
+    private void clearPath() {
+        // check map
+        if (map != null && pathPolyline != null) {
+            pathPolyline.remove();
+            return;
         }
     }
 }

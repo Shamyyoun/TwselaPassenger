@@ -7,6 +7,7 @@ import com.twsela.client.connection.ConnectionListener;
 import com.twsela.client.models.bodies.NearDriversBody;
 import com.twsela.client.models.entities.MongoLocation;
 import com.twsela.client.models.entities.Trip;
+import com.twsela.client.models.responses.DirectionsResponse;
 import com.twsela.client.models.responses.DistanceMatrixResponse;
 import com.twsela.client.models.responses.DriversResponse;
 import com.twsela.client.models.responses.LoginResponse;
@@ -139,6 +140,24 @@ public class ApiRequests {
         // create connection handler
         ConnectionHandler<DistanceMatrixResponse> connectionHandler = new ConnectionHandler(context, url,
                 DistanceMatrixResponse.class, listener, Const.TAG_DISTANCE_MATRIX);
+
+        connectionHandler.executeGet();
+        return connectionHandler;
+    }
+
+    public static ConnectionHandler<DirectionsResponse> getDirections(Context context,
+                                                                      ConnectionListener<DirectionsResponse> listener,
+                                                                      double originLat, double originLng,
+                                                                      double destLat, double destLng,
+                                                                      String apiKey, String language) {
+        // prepare url
+        String url = String.format(Locale.ENGLISH,
+                "https://maps.googleapis.com/maps/api/directions/json?origin=%f,%f&destination=%f,%f&language=%s&key=%s",
+                originLat, originLng, destLat, destLng, language, apiKey);
+
+        // create connection handler
+        ConnectionHandler<DirectionsResponse> connectionHandler = new ConnectionHandler(context, url,
+                DirectionsResponse.class, listener, Const.TAG_DIRECTIONS);
 
         connectionHandler.executeGet();
         return connectionHandler;
