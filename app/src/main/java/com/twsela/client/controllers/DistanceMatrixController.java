@@ -1,8 +1,10 @@
 package com.twsela.client.controllers;
 
 
-import com.twsela.client.models.entities.DistanceMatrixResult;
+import com.twsela.client.models.entities.DistanceMatrixRow;
 import com.twsela.client.models.responses.DistanceMatrixResponse;
+
+import java.util.List;
 
 /**
  * Created by Shamyyoun on 1/16/17.
@@ -10,11 +12,19 @@ import com.twsela.client.models.responses.DistanceMatrixResponse;
 
 public class DistanceMatrixController {
 
-    public DistanceMatrixResult getDistanceResult(DistanceMatrixResponse response) {
+    public long getTotalDistance(DistanceMatrixResponse response) {
         try {
-            return response.getRows().get(0).getElements().get(0).getDistance();
+            long distance = 0;
+
+            List<DistanceMatrixRow> rows = response.getRows();
+            for (int i = 0; i < rows.size(); i++) {
+                long tempDistance = rows.get(i).getElements().get(i).getDistance().getValue();
+                distance += tempDistance;
+            }
+
+            return distance;
         } catch (Exception e) {
-            return null;
+            return 0;
         }
     }
 }

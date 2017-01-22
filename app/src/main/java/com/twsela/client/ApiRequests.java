@@ -129,13 +129,12 @@ public class ApiRequests {
 
     public static ConnectionHandler<DistanceMatrixResponse> getDistanceMatrix(Context context,
                                                                               ConnectionListener<DistanceMatrixResponse> listener,
-                                                                              double originLat, double originLng,
-                                                                              double destLat, double destLng,
+                                                                              String origins, String destinations,
                                                                               String apiKey, String language) {
         // prepare url
         String url = String.format(Locale.ENGLISH,
-                "https://maps.googleapis.com/maps/api/distancematrix/json?origins=%f,%f&destinations=%f,%f&language=%s&key=%s",
-                originLat, originLng, destLat, destLng, language, apiKey);
+                "https://maps.googleapis.com/maps/api/distancematrix/json?origins=%s&destinations=%s&language=%s&key=%s",
+                origins, destinations, language, apiKey);
 
         // create connection handler
         ConnectionHandler<DistanceMatrixResponse> connectionHandler = new ConnectionHandler(context, url,
