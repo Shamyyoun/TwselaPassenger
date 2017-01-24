@@ -15,6 +15,7 @@ public class Const {
     public static final int MAP_REFRESH_RATE = 6 * 1000; // map refresh rate in milliseconds
     public static final int MIN_LOADING_DRIVERS_ZOOM_LEVEL = 12; // min zoom level of the map to start loading drivers
     public static final int TRIP_REQUEST_TIMEOUT = 60 * 1000;
+    public static final int GOOGLE_MAX_ORIGINS = 10; // for google distanceMatrix api
 
     // Server Constants:--------------------
     public static final int SER_CODE_200 = 200;

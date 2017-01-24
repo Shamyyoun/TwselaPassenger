@@ -44,7 +44,8 @@ public class TripDetailsActivity extends ParentActivity {
         setContentView(R.layout.activity_trip_details);
 
         // obtain main objects
-        tripId = getIntent().getStringExtra(Const.KEY_ID);
+        //        tripId = getIntent().getStringExtra(Const.KEY_ID);
+        tripId = "588640a2904b0b7ac23cf0b9";
         tripController = new TripController();
         locationController = new LocationController();
         distanceMatrixController = new DistanceMatrixController();
@@ -180,11 +181,15 @@ public class TripDetailsActivity extends ParentActivity {
         // check route points
         List<MongoLocation> points = trip.getRoutePoints();
         if (points != null && points.size() > 1) {
+
+            // sample the route points list
+            List<MongoLocation> sampledRoutePoints = Utils.sampleList(trip.getRoutePoints(), Const.GOOGLE_MAX_ORIGINS);
+
             // prepare using points list
-            for (int i = 0; i < points.size() - 1; i++) {
+            for (int i = 0; i < sampledRoutePoints.size() - 1; i++) {
                 // get locations
-                MongoLocation location1 = points.get(i);
-                MongoLocation location2 = points.get(i + 1);
+                MongoLocation location1 = sampledRoutePoints.get(i);
+                MongoLocation location2 = sampledRoutePoints.get(i + 1);
 
                 // get values
                 double lat1 = locationController.getLatitude(location1);
