@@ -838,6 +838,7 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         // remove the marker
         if (markers[LOCATION_TO] != null) {
             markers[LOCATION_TO].remove();
+            markers[LOCATION_TO] = null;
         }
 
         // update the ui
