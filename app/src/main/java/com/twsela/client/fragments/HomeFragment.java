@@ -54,6 +54,7 @@ import com.twsela.client.utils.Utils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.HashMap;
 import java.util.List;
@@ -187,6 +188,16 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
 
     @Override
     public void onMapLoaded() {
+        chooseMyLocationAsPickup();
+
+        // start near drivers handler
+        driversHandler.post(this);
+
+        // update the flag
+        mapLoaded = true;
+    }
+
+    private void chooseMyLocationAsPickup() {
         // get possible location
         Location location = LocationUtils.getLastKnownLocation(activity);
 
@@ -195,12 +206,6 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
             addFromLocation(location.getLatitude(), location.getLongitude(), null);
             setFromAddress();
         }
-
-        // start near drivers handler
-        driversHandler.post(this);
-
-        // update the flag
-        mapLoaded = true;
     }
 
     @Override
@@ -809,17 +814,37 @@ public class HomeFragment extends ParentFragment implements OnMapReadyCallback, 
         cancelWhenDestroyed(request);
     }
 
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onTripStatusChanged(TripStatusChanged event) {
         // check the status
         if (event.getStatus() == TripStatus.ACCEPTED) {
-            // just hide the progress dialog and unregister from event bus
+            // just hide the progress dialog and cancel the timeout handler
             hideProgressDialog();
-            EventBus.getDefault().unregister(this);
-
-            // cancel request timeout handler
             cancelTripRequestTimeoutHandler();
+        } else if (event.getStatus() == TripStatus.ENDED
+                || event.getStatus() == TripStatus.CANCELLED) {
+
+            // reset locations and stop listening for events
+            resetLocations();
+            EventBus.getDefault().unregister(this);
         }
+    }
+
+    private void resetLocations() {
+        // remove the location and address from the holder obj
+        tripHolder.setDestinationLocation(null);
+        tripHolder.setDestinationAddress(null);
+
+        // remove the marker
+        if (markers[LOCATION_TO] != null) {
+            markers[LOCATION_TO].remove();
+        }
+
+        // update the ui
+        updateToUI();
+
+        // choose my location as pickup
+        chooseMyLocationAsPickup();
     }
 
 }
