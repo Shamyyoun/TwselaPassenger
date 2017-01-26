@@ -53,6 +53,9 @@ public class Trip {
     @SerializedName("route_points")
     @Expose
     private List<MongoLocation> routePoints = null;
+    @SerializedName("total_distance_km")
+    @Expose
+    private float totalDistanceKm;
 
     public String getPassengerId() {
         return passengerId;
@@ -172,5 +175,13 @@ public class Trip {
 
     public void setRoutePoints(List<MongoLocation> routePoints) {
         this.routePoints = routePoints;
+    }
+
+    public float getTotalDistanceKm() {
+        return totalDistanceKm;
+    }
+
+    public void setTotalDistanceKm(float totalDistanceKm) {
+        this.totalDistanceKm = totalDistanceKm;
     }
 }

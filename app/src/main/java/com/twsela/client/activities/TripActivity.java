@@ -243,6 +243,11 @@ public class TripActivity extends ParentActivity implements OnMapReadyCallback, 
                         .rotation(bearing)
                         .icon(icon);
                 marker = map.addMarker(options);
+
+                // set the marker flat if it is the driver
+                if (markerSign == MARKER_SIGN_DRIVER) {
+                    options.flat(true);
+                }
             } else {
                 // animate to the new position
                 MarkerUtils.animateMarkerToICSWithBearing(marker, latLng, bearing,
